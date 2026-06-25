@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AuditPilot AI — Preliminary Analytical Review Assistant</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --ink-950:#0A0D12;
+  --ink-900:#11151C;
+  --ink-850:#151B24;
+  --ink-800:#1B212C;
+  --line-700:#262E3A;
+  --line-600:#313B4A;
+  --text-100:#E8ECF2;
+  --text-300:#B7BFCC;
+  --text-500:#8B94A6;
+  --accent:#3D7EFF;
+  --accent-dim:#1E3A6B;
+  --accent-soft:rgba(61,126,255,0.12);
+  --flag-amber:#E8A33D;
+  --flag-amber-soft:rgba(232,163,61,0.12);
+  --flag-red:#E5484D;
+  --flag-red-soft:rgba(229,72,77,0.12);
+  --flag-green:#2FBE6B;
+  --flag-green-soft:rgba(47,190,107,0.12);
+  --font-display:'Space Grotesk',sans-serif;
+  --font-body:'IBM Plex Sans',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+  --radius:10px;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--ink-950);
+  color:var(--text-100);
+  font-family:var(--font-body);
+  font-size:15px;
+  line-height:1.55;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+h1,h2,h3{font-family:var(--font-display);margin:0;letter-spacing:-0.01em;}
+p{margin:0;}
+button{font-family:var(--font-body);cursor:pointer;}
+input{font-family:var(--font-mono);}
+.mono{font-family:var(--font-mono);}
+a{color:var(--accent);}
+
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px;}
+
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--line-600);border-radius:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important;transition:none !important;}
+}
+
+/* ---------- layout shell ---------- */
+.app{flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.view{display:none;flex:1;}
+.view.active{display:flex;flex-direction:column;}
+
+/* ---------- buttons ---------- */
+.btn{
+  font-size:14.5px;font-weight:500;border-radius:8px;border:1px solid transparent;
+  padding:11px 20px;transition:background .15s,border-color .15s,transform .1s;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#5b91ff;}
+.btn-primary:disabled{background:var(--line-600);color:var(--text-500);cursor:not-allowed;}
+.btn-secondary{background:transparent;border-color:var(--line-600);color:var(--text-100);}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn-secondary:disabled{color:var(--text-500);border-color:var(--line-700);cursor:not-allowed;}
+.btn-ghost{background:var(--ink-850);border-color:var(--line-700);color:var(--text-300);}
+.btn-ghost:hover{color:var(--text-100);border-color:var(--line-600);}
+.btn-large{padding:13px 26px;font-size:15px;}
+.link-btn{background:none;border:none;color:var(--accent);padding:0;font-size:inherit;text-decoration:underline;text-decoration-color:var(--accent-dim);}
+.link-btn:hover{text-decoration-color:var(--accent);}
+
+/* ---------- top nav ---------- */
+.topnav{padding:22px 40px 0;}
+.brand{font-family:var(--font-display);font-weight:600;font-size:18px;}
+.brand em{font-style:normal;color:var(--accent);font-size:12px;vertical-align:super;}
+
+/* ---------- landing / hero ---------- */
+#view-landing{padding-bottom:40px;}
+.hero{
+  flex:1;display:flex;align-items:center;gap:64px;
+  max-width:1180px;margin:0 auto;padding:40px 40px 0;width:100%;
+}
+.hero-copy{flex:1.1;}
+.eyebrow{
+  font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:14px;
+}
+.hero-copy h1{font-size:52px;font-weight:700;margin-bottom:18px;}
+.tagline{color:var(--text-300);font-size:17px;max-width:480px;margin-bottom:32px;}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;}
+
+.hero-card{flex:1;display:flex;justify-content:center;}
+.wp-card{
+  position:relative;width:300px;background:var(--ink-900);border:1px solid var(--line-700);
+  border-radius:14px;padding:24px 22px;transform:rotate(2.5deg);
+  box-shadow:0 30px 60px -20px rgba(0,0,0,0.6);
+}
+.wp-card-tab{
+  font-family:var(--font-mono);font-size:11px;color:var(--text-500);
+  border-bottom:1px solid var(--line-700);padding-bottom:12px;margin-bottom:16px;
+}
+.wp-card-flag{
+  position:absolute;top:-14px;right:-14px;width:30px;height:30px;border-radius:50%;
+  background:var(--flag-red);color:#fff;font-family:var(--font-mono);font-weight:600;font-size:13px;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(229,72,77,0.4);
+  transform:rotate(8deg);
+}
+.skeleton-row{height:10px;border-radius:5px;background:var(--line-700);margin-bottom:14px;}
+.skeleton-row.warn{
+  background:var(--flag-amber-soft);height:auto;padding:5px 9px;border-radius:6px;
+  font-family:var(--font-mono);font-size:11px;color:var(--flag-amber);width:auto !important;
+  display:inline-block;
+}
+
+/* ---------- shared workpaper header ---------- */
+.wp-page-header{margin-bottom:22px;}
+.wp-code{
+  font-family:var(--font-mono);font-size:12px;color:var(--accent);letter-spacing:.04em;
+  display:block;margin-bottom:6px;
+}
+.wp-page-header h2{font-size:24px;margin-bottom:4px;}
+.wp-meta{font-family:var(--font-mono);font-size:12.5px;color:var(--text-500);}
+
+/* ---------- upload view ---------- */
+#view-upload{max-width:880px;margin:0 auto;width:100%;padding:36px 40px 140px;}
+.meta-row{display:flex;gap:20px;margin-bottom:28px;flex-wrap:wrap;}
+.meta-row label{font-size:12.5px;color:var(--text-500);display:flex;flex-direction:column;gap:6px;}
+.meta-row input{
+  background:var(--ink-900);border:1px solid var(--line-700);border-radius:7px;
+  color:var(--text-100);padding:8px 11px;font-size:13.5px;min-width:160px;
+}
+.meta-row input:focus{border-color:var(--accent);}
+
+.upload-row{display:flex;align-items:stretch;gap:18px;margin-bottom:8px;flex-wrap:wrap;}
+.dropzone{
+  flex:2;min-width:280px;border:1.5px dashed var(--line-600);border-radius:var(--radius);
+  background:var(--ink-900);padding:22px;text-align:center;transition:border-color .15s,background .15s;
+}
+.dropzone.drag{border-color:var(--accent);background:var(--accent-soft);}
+.dropzone p{color:var(--text-300);font-size:13.5px;margin-bottom:14px;}
+#upload-filename{margin-top:10px;}
+.divider-or{
+  align-self:center;color:var(--text-500);font-family:var(--font-mono);font-size:12px;
+  text-transform:uppercase;letter-spacing:.06em;
+}
+.muted{color:var(--text-500);}
+.small{font-size:12.5px;}
+.note{
+  background:var(--flag-green-soft);border:1px solid rgba(47,190,107,0.3);color:var(--flag-green);
+  border-radius:8px;padding:10px 14px;font-size:13px;margin:14px 0;
+}
+.hidden{display:none !important;}
+
+.schedule-table{width:100%;border-collapse:collapse;margin:28px 0 24px;}
+.schedule-table th{
+  text-align:left;font-size:11.5px;color:var(--text-500);text-transform:uppercase;letter-spacing:.05em;
+  padding:8px 10px;border-bottom:1px solid var(--line-700);font-weight:500;
+}
+.schedule-table th.num-col,.schedule-table td.num-col{text-align:right;}
+.group-row td{
+  padding:14px 10px 6px;font-family:var(--font-mono);font-size:11px;color:var(--accent);
+  text-transform:uppercase;letter-spacing:.06em;border-bottom:none;
+}
+.schedule-table tbody tr.item-row td{padding:5px 10px;border-bottom:1px solid var(--ink-850);}
+.item-label{font-size:13.5px;color:var(--text-100);}
+.fig-input{
+  width:120px;background:var(--ink-900);border:1px solid var(--line-700);border-radius:7px;
+  color:var(--text-100);padding:7px 10px;font-size:13px;text-align:right;
+}
+.fig-input:focus{border-color:var(--accent);}
+.fig-input.invalid{border-color:var(--flag-red);background:var(--flag-red-soft);}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+input[type=number]{-moz-appearance:textfield;}
+
+.error-banner{
+  background:var(--flag-red-soft);border:1px solid rgba(229,72,77,0.35);color:#ff9a9d;
+  border-radius:8px;padding:12px 16px;font-size:13.5px;margin:14px 0;display:flex;
+  align-items:center;justify-content:space-between;gap:12px;
+}
+.error-banner button{background:none;border:1px solid rgba(229,72,77,0.5);color:#ff9a9d;border-radius:6px;padding:6px 12px;font-size:12.5px;}
+
+/* ---------- loading view ---------- */
+#view-loading{align-items:center;justify-content:center;}
+.loading-box{display:flex;flex-direction:column;align-items:center;gap:18px;}
+.spinner{
+  width:38px;height:38px;border-radius:50%;border:3px solid var(--line-700);
+  border-top-color:var(--accent);animation:spin 0.9s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-family:var(--font-mono);font-size:13px;color:var(--text-500);}
+
+/* ---------- results view ---------- */
+#view-results{flex-direction:row;align-items:flex-start;flex:1;max-width:1180px;margin:0 auto;width:100%;padding:30px 40px 140px;gap:36px;}
+.wp-index{display:flex;flex-direction:column;gap:4px;width:230px;flex-shrink:0;position:sticky;top:24px;}
+.idx-btn{
+  display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;
+  background:none;border:1px solid transparent;border-radius:8px;padding:10px 12px;color:var(--text-300);
+}
+.idx-btn:hover{background:var(--ink-900);}
+.idx-btn.active{background:var(--accent-soft);border-color:var(--accent-dim);color:var(--text-100);}
+.idx-code{font-family:var(--font-mono);font-size:11px;color:var(--accent);}
+.idx-label{font-size:13.5px;}
+.wp-main{flex:1;min-width:0;}
+
+.ai-badge{
+  display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;
+  color:var(--accent);background:var(--accent-soft);border-radius:20px;padding:4px 10px;margin-bottom:14px;
+}
+.prose{color:var(--text-300);font-size:15px;max-width:640px;}
+
+.stat-strip{display:flex;gap:14px;margin-bottom:22px;flex-wrap:wrap;}
+.stat{
+  background:var(--ink-900);border:1px solid var(--line-700);border-radius:10px;
+  padding:14px 18px;min-width:150px;
+}
+.stat-label{display:block;font-size:11.5px;color:var(--text-500);margin-bottom:6px;}
+.stat-value{font-size:19px;font-weight:600;}
+.stat-value.up{color:var(--flag-green);}
+.stat-value.down{color:var(--flag-red);}
+
+.ratio-table{width:100%;border-collapse:collapse;margin-top:6px;}
+.ratio-table th{text-align:right;font-size:11.5px;color:var(--text-500);text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:1px solid var(--line-700);font-weight:500;}
+.ratio-table th:first-child{text-align:left;}
+.ratio-table td{padding:11px 10px;border-bottom:1px solid var(--ink-850);text-align:right;font-size:13.5px;}
+.ratio-table td:first-child{text-align:left;color:var(--text-100);font-family:var(--font-body);}
+.delta-up{color:var(--flag-green);}
+.delta-down{color:var(--flag-red);}
+
+.variance-list{display:flex;flex-direction:column;gap:10px;margin-top:6px;}
+.variance-item{
+  background:var(--ink-900);border:1px solid var(--line-700);border-radius:10px;padding:13px 16px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.variance-item.flagged{border-color:rgba(232,163,61,0.4);}
+.variance-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
+.variance-name{font-size:13.5px;}
+.variance-figs{font-family:var(--font-mono);font-size:12px;color:var(--text-500);}
+.variance-pct{font-family:var(--font-mono);font-size:14px;font-weight:600;}
+.variance-commentary{font-size:13px;color:var(--text-300);}
+.flag-pill{
+  font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;
+  background:var(--flag-amber-soft);color:var(--flag-amber);border-radius:12px;padding:2px 8px;
+}
+
+.risk-grid{display:flex;flex-direction:column;gap:14px;margin-top:6px;}
+.risk-card{background:var(--ink-900);border:1px solid var(--line-700);border-radius:12px;padding:18px 20px;}
+.risk-card h3{font-size:16px;margin-bottom:8px;}
+.risk-row{display:flex;gap:8px;margin-top:8px;font-size:13.5px;}
+.risk-tag{
+  font-family:var(--font-mono);font-size:10.5px;color:var(--text-500);text-transform:uppercase;
+  letter-spacing:.04em;flex-shrink:0;padding-top:2px;width:80px;
+}
+.risk-row p{color:var(--text-300);}
+
+.wp-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+.clear-counter{font-family:var(--font-mono);font-size:12px;color:var(--text-500);}
+
+.draft-card{background:var(--ink-900);border:1px solid var(--line-700);border-radius:12px;padding:20px 22px;margin-bottom:16px;}
+.draft-card h3{font-size:15.5px;margin-bottom:14px;color:var(--text-100);}
+.draft-field{margin-bottom:14px;display:flex;gap:14px;align-items:flex-start;}
+.draft-field-label{
+  font-family:var(--font-mono);font-size:10.5px;color:var(--text-500);text-transform:uppercase;
+  letter-spacing:.04em;width:140px;flex-shrink:0;padding-top:2px;
+}
+.draft-field-text{font-size:13.5px;color:var(--text-300);flex:1;}
+.review-note{
+  margin-top:8px;background:var(--flag-amber-soft);border:1px solid rgba(232,163,61,0.35);
+  border-radius:8px;padding:9px 12px;display:flex;gap:10px;align-items:flex-start;font-size:12.5px;
+}
+.review-note.cleared{background:var(--flag-green-soft);border-color:rgba(47,190,107,0.35);}
+.review-note .q-tag{
+  font-family:var(--font-mono);font-weight:600;color:var(--flag-amber);flex-shrink:0;
+}
+.review-note.cleared .q-tag{color:var(--flag-green);text-decoration:line-through;}
+.review-note p{color:var(--text-300);flex:1;}
+.review-note.cleared p{color:var(--text-500);text-decoration:line-through;}
+.clear-toggle{
+  background:none;border:1px solid var(--line-600);color:var(--text-500);border-radius:6px;
+  padding:3px 9px;font-size:11px;flex-shrink:0;
+}
+.review-note.cleared .clear-toggle{border-color:rgba(47,190,107,0.4);color:var(--flag-green);}
+.general-notes{margin-top:18px;}
+.general-notes h4{font-size:12.5px;color:var(--text-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
+
+/* ---------- disclaimer bar ---------- */
+.disclaimer-bar{
+  position:fixed;bottom:0;left:0;right:0;background:rgba(17,21,28,0.97);
+  border-top:1px solid var(--line-700);backdrop-filter:blur(6px);
+  padding:13px 40px;display:none;align-items:center;gap:10px;z-index:50;
+}
+body[data-view="upload"] .disclaimer-bar,
+body[data-view="results"] .disclaimer-bar,
+body[data-view="loading"] .disclaimer-bar{display:flex;}
+.disclaimer-bar svg{flex-shrink:0;color:var(--text-500);}
+.disclaimer-bar span{font-size:12.5px;color:var(--text-500);max-width:980px;margin:0 auto;text-align:center;}
+
+/* ---------- responsive ---------- */
+@media (max-width:860px){
+  .hero{flex-direction:column;gap:36px;padding:20px 24px;text-align:left;}
+  .hero-copy h1{font-size:38px;}
+  .topnav{padding:18px 24px 0;}
+  #view-upload{padding:24px 22px 150px;}
+  #view-results{flex-direction:column;padding:20px 22px 150px;}
+  .wp-index{
+    flex-direction:row;width:100%;overflow-x:auto;position:static;gap:8px;padding-bottom:6px;
+  }
+  .idx-btn{flex-direction:row;align-items:center;gap:6px;white-space:nowrap;}
+  .draft-field{flex-direction:column;gap:4px;}
+  .draft-field-label{width:auto;}
+  .disclaimer-bar{padding:12px 20px;}
+}
+</style>
+</head>
+<body data-view="landing">
+<div class="app">
+
+  <!-- ================= LANDING ================= -->
+  <section id="view-landing" class="view active">
+    <nav class="topnav"><span class="brand">AuditPilot <em>AI</em></span></nav>
+    <div class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Preliminary Analytical Review</p>
+        <h1>AuditPilot AI</h1>
+        <p class="tagline">An AI-assisted working-paper draft for preliminary financial statement analysis — built to support the engagement team, never to replace it.</p>
+        <div class="cta-row">
+          <button id="try-demo-btn" class="btn btn-primary">Try Demo</button>
+          <button id="upload-btn" class="btn btn-secondary">Upload Financial Statements</button>
+        </div>
+      </div>
+      <div class="hero-card" aria-hidden="true">
+        <div class="wp-card">
+          <div class="wp-card-flag">Q</div>
+          <div class="wp-card-tab">WP-100 · Analytical Review</div>
+          <div class="skeleton-row" style="width:82%"></div>
+          <div class="skeleton-row" style="width:60%"></div>
+          <div class="skeleton-row warn">Inventory +42%</div>
+          <div class="skeleton-row" style="width:70%"></div>
+          <div class="skeleton-row warn">Finance cost ×2</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= UPLOAD / INPUT SCHEDULE ================= -->
+  <section id="view-upload" class="view">
+    <div class="wp-page-header">
+      <span class="wp-code">WP-000</span>
+      <h2>Input Schedule</h2>
+      <div class="wp-meta">Key figures for current year and prior year</div>
+    </div>
+
+    <div id="api-key-banner" style="background:var(--flag-amber-soft);border:1px solid rgba(232,163,61,0.35);border-radius:10px;padding:14px 18px;margin-bottom:22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <span style="font-family:var(--font-mono);font-size:12px;color:var(--flag-amber);flex-shrink:0;">🔑 GEMINI KEY</span>
+      <input id="gemini-key-input" type="password" placeholder="Paste your Gemini API key (AIzaSy...)" style="flex:1;min-width:260px;background:var(--ink-900);border:1px solid var(--line-600);border-radius:7px;color:var(--text-100);padding:8px 12px;font-family:var(--font-mono);font-size:13px;" />
+      <button id="save-key-btn" class="btn btn-secondary" type="button" style="flex-shrink:0;">Save key</button>
+      <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size:12.5px;color:var(--accent);flex-shrink:0;">Get free key →</a>
+    </div>
+
+    <div class="meta-row">
+      <label>Client<input id="meta-client" type="text" value="" placeholder="Client name" /></label>
+      <label>Period<input id="meta-period" type="text" value="" placeholder="e.g. FY 2025-26" /></label>
+      <label>Currency / Unit<input id="meta-unit" type="text" value="" placeholder="e.g. ₹ Lakhs" /></label>
+    </div>
+
+    <div class="upload-row">
+      <div class="dropzone" id="dropzone">
+        <p>Drag a PDF or image of the financial statements here, or <button id="browse-btn" class="link-btn" type="button">browse a file</button>.</p>
+        <input type="file" id="file-input" accept=".pdf,image/png,image/jpeg,image/jpg" hidden />
+        <button id="extract-btn" class="btn btn-secondary" type="button" disabled>Extract figures with AI</button>
+        <p id="upload-filename" class="muted small"></p>
+      </div>
+      <div class="divider-or">or</div>
+      <button id="demo-btn" class="btn btn-ghost" type="button">Load sample data (ABC Ltd.)</button>
+    </div>
+
+    <p id="extract-note" class="note hidden"></p>
+    <div id="upload-error" class="error-banner hidden"></div>
+
+    <table class="schedule-table" id="schedule-table">
+      <thead>
+        <tr><th>Line item</th><th class="num-col">Current Year</th><th class="num-col">Prior Year</th></tr>
+      </thead>
+      <tbody id="schedule-body"></tbody>
+    </table>
+
+    <button id="generate-btn" class="btn btn-primary btn-large" type="button">Generate Audit Insights →</button>
+  </section>
+
+  <!-- ================= LOADING ================= -->
+  <section id="view-loading" class="view">
+    <div class="loading-box">
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="loading-text" id="loading-text">Reviewing figures…</p>
+    </div>
+  </section>
+
+  <!-- ================= RESULTS ================= -->
+  <section id="view-results" class="view">
+    <aside class="wp-index" id="wp-index" role="tablist"></aside>
+    <main class="wp-main" id="wp-main"></main>
+  </section>
+
+  <!-- ================= DISCLAIMER (persistent) ================= -->
+  <div class="disclaimer-bar">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    <span>AuditPilot AI assists in preparing preliminary analytical procedures and documentation. Final audit procedures, conclusions and professional judgment remain the responsibility of the engagement team.</span>
+  </div>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   DATA DEFINITIONS
+   ============================================================ */
+var LINE_ITEMS = [
+  {id:'revenue', label:'Revenue from Operations', group:'Profit & Loss'},
+  {id:'cogs', label:'Cost of Goods Sold', group:'Profit & Loss'},
+  {id:'financeCost', label:'Finance Cost', group:'Profit & Loss'},
+  {id:'netProfit', label:'Net Profit (PAT)', group:'Profit & Loss'},
+  {id:'currentAssets', label:'Total Current Assets', group:'Balance Sheet'},
+  {id:'inventory', label:'Inventory', group:'Balance Sheet'},
+  {id:'receivables', label:'Trade Receivables', group:'Balance Sheet'},
+  {id:'currentLiabilities', label:'Total Current Liabilities', group:'Balance Sheet'},
+  {id:'totalEquity', label:'Total Equity', group:'Balance Sheet'}
+];
+
+var DEMO_DATA = {
+  revenue:{cy:1180, py:1000},
+  cogs:{cy:910, py:740},
+  financeCost:{cy:50, py:25},
+  netProfit:{cy:118, py:140},
+  currentAssets:{cy:620, py:420},
+  inventory:{cy:213, py:150},
+  receivables:{cy:170, py:130},
+  currentLiabilities:{cy:340, py:300},
+  totalEquity:{cy:680, py:600}
+};
+var DEMO_META = {client:'ABC Ltd.', period:'FY 2025-26', unit:'₹ Lakhs'};
+
+var RATIO_META = [
+  {key:'currentRatio', label:'Current Ratio', fmt:'x', goodDir:'up'},
+  {key:'quickRatio', label:'Quick Ratio', fmt:'x', goodDir:'up'},
+  {key:'grossMargin', label:'Gross Margin', fmt:'%', goodDir:'up'},
+  {key:'netMargin', label:'Net Margin', fmt:'%', goodDir:'up'},
+  {key:'roe', label:'Return on Equity', fmt:'%', goodDir:'up'},
+  {key:'debtorDays', label:'Debtor Days', fmt:'days', goodDir:'down'},
+  {key:'inventoryDays', label:'Inventory Days', fmt:'days', goodDir:'down'}
+];
+
+var TABS = [
+  {id:'summary', code:'WP-100', label:'Executive Summary'},
+  {id:'ratios', code:'WP-200', label:'Ratio Analysis'},
+  {id:'variances', code:'WP-300', label:'Variance Analysis'},
+  {id:'risks', code:'WP-400', label:'Risk Areas'},
+  {id:'workingpaper', code:'WP-500', label:'Working Paper Draft'}
+];
+
+var LOADING_MESSAGES = [
+  'Reviewing trial balance figures…',
+  'Recalculating key ratios…',
+  'Scanning for significant variances…',
+  'Drafting preliminary risk areas…',
+  'Compiling working paper…'
+];
+
+/* System prompts live server-side in /api/*.js — never exposed to the browser */
+
+
+/* ============================================================
+   STATE
+   ============================================================ */
+var state = {
+  financials: null,
+  meta: {client:'', period:'', unit:''},
+  computed: null,
+  insights: null,
+  managerComments: null,
+  clearedFlags: {},
+  currentTab: 'summary',
+  selectedFile: null,
+  loadingInterval: null
+};
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+function esc(s){
+  var d = document.createElement('div');
+  d.textContent = (s === null || s === undefined) ? '' : String(s);
+  return d.innerHTML;
+}
+function fmtNum(n){
+  if(n === null || n === undefined || isNaN(n)) return '—';
+  return Number(n).toLocaleString('en-IN', {maximumFractionDigits:1});
+}
+function fmtRatio(val, fmt){
+  if(val === null || val === undefined || !isFinite(val)) return '—';
+  if(fmt === 'x') return val.toFixed(2) + '×';
+  if(fmt === '%') return val.toFixed(1) + '%';
+  if(fmt === 'days') return Math.round(val) + ' d';
+  return String(val);
+}
+function fmtDeltaClass(curr, prev, goodDir){
+  if(!isFinite(curr) || !isFinite(prev)) return '';
+  var improved = goodDir === 'up' ? (curr > prev) : (curr < prev);
+  return improved ? 'delta-up' : (curr === prev ? '' : 'delta-down');
+}
+function pctChange(cy, py){
+  if(py === 0 || py === null || py === undefined || isNaN(py) || isNaN(cy)) return null;
+  return ((cy - py) / Math.abs(py)) * 100;
+}
+function parseJSONSafe(text){
+  var clean = text.trim();
+  // Strip markdown code fences (handles ```json, ```JSON, ```)
+  clean = clean.replace(/^```[a-zA-Z]*\s*/i, '').replace(/```\s*$/, '').trim();
+  // Extract content from first {
+  var start = clean.indexOf('{');
+  if(start === -1) throw new Error('No JSON object found in response.');
+  clean = clean.slice(start);
+  // Remove trailing commas before ] or }
+  clean = clean.replace(/,\s*([}\]])/g, '$1');
+  // Try parsing as-is first
+  try { return JSON.parse(clean); } catch(e1) {}
+  // If truncated, attempt to repair by closing open structures
+  try { return JSON.parse(repairJSON(clean)); } catch(e2) {
+    throw new Error('Could not parse response — the model may have been cut off. Try again.');
+  }
+}
+function repairJSON(s){
+  // Walk the JSON and track open brackets/strings, then close them
+  var stack = [];
+  var inString = false;
+  var escape = false;
+  for(var i = 0; i < s.length; i++){
+    var c = s[i];
+    if(escape){ escape = false; continue; }
+    if(c === '\\' && inString){ escape = true; continue; }
+    if(c === '"'){ inString = !inString; continue; }
+    if(inString) continue;
+    if(c === '{') stack.push('}');
+    else if(c === '[') stack.push(']');
+    else if(c === '}' || c === ']'){
+      if(stack.length && stack[stack.length-1] === c) stack.pop();
+    }
+  }
+  var result = s;
+  if(inString) result += '"';
+  result = result.replace(/,\s*$/, '');
+  while(stack.length) result += stack.pop();
+  return result;
+}
+function fileToBase64(file){
+  return new Promise(function(resolve, reject){
+    var reader = new FileReader();
+    reader.onload = function(){ resolve(reader.result.split(',')[1]); };
+    reader.onerror = function(){ reject(new Error('Could not read the file.')); };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ============================================================
+   BACKEND API CALLS (API key lives server-side, never in browser)
+   ============================================================ */
+/* ============================================================
+   GEMINI API — called directly from browser (Gemini allows CORS)
+   Key is stored here. For production, move to a backend proxy.
+   ============================================================ */
+var GEMINI_API_KEY = window.__GEMINI_KEY__ || '';
+var GEMINI_MODEL = 'gemini-2.0-flash';
+
+function callGemini(systemPrompt, userText, imageParts, maxTokens){
+  if(!GEMINI_API_KEY){
+    return Promise.reject(new Error('No API key set. Please enter your Gemini API key in the box above.'));
+  }
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent';
+  var parts = imageParts ? imageParts.concat([{text: userText}]) : [{text: userText}];
+  var body = {
+    system_instruction: {parts: [{text: systemPrompt}]},
+    contents: [{role:'user', parts: parts}],
+    generationConfig: {maxOutputTokens: maxTokens || 2000, temperature: 0.2}
+  };
+  return fetch(url, {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-goog-api-key': GEMINI_API_KEY
+    },
+    body: JSON.stringify(body)
+  })
+    .then(function(res){
+      return res.json().then(function(data){
+        if(!res.ok){
+          if(res.status === 429) throw new Error('Rate limit reached — please wait a moment and try again.');
+          var msg = (data && data.error && data.error.message) ? data.error.message : ('Gemini error ' + res.status);
+          throw new Error(msg);
+        }
+        return data;
+      });
+    })
+    .then(function(data){
+      var text = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
+      if(!text) throw new Error('Empty response from Gemini.');
+      return text;
+    });
+}
+
+var EXTRACT_SYSTEM_PROMPT = 'You are a Big Four audit senior. Extract these financial line items for current year and prior year from the uploaded statement: revenue from operations, cost of goods sold, finance cost, net profit after tax, total current assets, inventory, trade receivables, total current liabilities, total equity. Respond ONLY with minified JSON, no markdown, no commentary, in exactly this shape: {"revenue":{"cy":number|null,"py":number|null},"cogs":{"cy":number|null,"py":number|null},"financeCost":{"cy":number|null,"py":number|null},"netProfit":{"cy":number|null,"py":number|null},"currentAssets":{"cy":number|null,"py":number|null},"inventory":{"cy":number|null,"py":number|null},"receivables":{"cy":number|null,"py":number|null},"currentLiabilities":{"cy":number|null,"py":number|null},"totalEquity":{"cy":number|null,"py":number|null}}. Use null where not found. Plain numbers only.';
+
+var INSIGHTS_SYSTEM_PROMPT = 'You are a Big Four audit senior assisting with preliminary analytical procedures and working paper drafting for a statutory audit engagement. You will be given the client\'s key financial figures, computed financial ratios, and computed year-on-year variances — all already calculated, so do not recompute or restate the arithmetic. Using concise, professional audit language, respond ONLY with minified JSON, no markdown, no preamble, in exactly this shape: {"executiveSummary":string,"varianceCommentary":[{"item":string,"commentary":string}],"riskAreas":[{"title":string,"reason":string,"procedure":string}],"workingPaper":[{"riskArea":string,"objective":string,"procedurePerformed":string,"observation":string,"conclusion":string}]}. Rules: executiveSummary is 2-3 sentences of plain prose. varianceCommentary covers up to 5 of the variances given, one short sentence each. riskAreas has 3 to 4 entries, drawn only from patterns evidenced in the figures/variances given. workingPaper has exactly one entry per riskArea, with riskArea matching a riskAreas title exactly. procedurePerformed must describe only preliminary analytical work — never claim physical inspection or substantive testing. conclusion must state the area warrants further audit attention and must never state a final audit opinion. Keep every string under 30 words.';
+
+var MANAGER_SYSTEM_PROMPT = 'You are an audit manager reviewing a senior\'s preliminary working paper draft, in the style of a real engagement-file review note. You will be given the working paper draft as JSON. Respond ONLY with minified JSON, no markdown, no preamble, in exactly this shape: {"comments":[{"refersTo":string,"field":string,"comment":string}]}. refersTo must exactly match one of the riskArea values given, or be the literal string "general". field must be one of "objective","procedurePerformed","observation","conclusion","general". comment is one short, specific, constructive review query a real audit manager would mark up. Produce 3 to 5 comments total, each under 25 words.';
+
+function callBackend(endpoint, body){
+  if(endpoint === '/api/extract-figures'){
+    var imgPart = {inline_data: {mime_type: body.mediaType, data: body.base64}};
+    return callGemini(EXTRACT_SYSTEM_PROMPT, 'Extract the financial figures.', [imgPart], 4000);
+  }
+  if(endpoint === '/api/generate-insights'){
+    return callGemini(INSIGHTS_SYSTEM_PROMPT, body.prompt, null, 4000);
+  }
+  if(endpoint === '/api/review-manager'){
+    return callGemini(MANAGER_SYSTEM_PROMPT, 'Working paper draft to review:\n' + JSON.stringify(body.workingPaper), null, 4000);
+  }
+  return Promise.reject(new Error('Unknown endpoint: ' + endpoint));
+}
+
+
+
+
+/* ============================================================
+   VIEW SWITCHING
+   ============================================================ */
+function showView(id){
+  var views = document.querySelectorAll('.view');
+  for(var i = 0; i < views.length; i++) views[i].classList.remove('active');
+  document.getElementById(id).classList.add('active');
+  document.body.setAttribute('data-view', id.replace('view-', ''));
+}
+
+/* ============================================================
+   SCHEDULE TABLE (input)
+   ============================================================ */
+function buildScheduleTable(){
+  var body = document.getElementById('schedule-body');
+  var html = '';
+  var currentGroup = null;
+  for(var i = 0; i < LINE_ITEMS.length; i++){
+    var item = LINE_ITEMS[i];
+    if(item.group !== currentGroup){
+      currentGroup = item.group;
+      html += '<tr class="group-row"><td colspan="3">' + esc(currentGroup) + '</td></tr>';
+    }
+    html += '<tr class="item-row" data-id="' + item.id + '">' +
+      '<td class="item-label">' + esc(item.label) + '</td>' +
+      '<td class="num-col"><input class="fig-input" type="number" step="any" data-id="' + item.id + '" data-year="cy" /></td>' +
+      '<td class="num-col"><input class="fig-input" type="number" step="any" data-id="' + item.id + '" data-year="py" /></td>' +
+      '</tr>';
+  }
+  body.innerHTML = html;
+}
+
+function fillSchedule(financials){
+  var inputs = document.querySelectorAll('.fig-input');
+  for(var i = 0; i < inputs.length; i++){
+    var id = inputs[i].getAttribute('data-id');
+    var year = inputs[i].getAttribute('data-year');
+    if(financials[id] && financials[id][year] !== null && financials[id][year] !== undefined){
+      inputs[i].value = financials[id][year];
+    }
+  }
+}
+
+function readSchedule(){
+  var financials = {};
+  var inputs = document.querySelectorAll('.fig-input');
+  for(var i = 0; i < inputs.length; i++){
+    var id = inputs[i].getAttribute('data-id');
+    var year = inputs[i].getAttribute('data-year');
+    if(!financials[id]) financials[id] = {};
+    var v = parseFloat(inputs[i].value);
+    financials[id][year] = isNaN(v) ? null : v;
+  }
+  return financials;
+}
+
+function validateSchedule(){
+  var inputs = document.querySelectorAll('.fig-input');
+  var valid = true;
+  for(var i = 0; i < inputs.length; i++){
+    var v = parseFloat(inputs[i].value);
+    var ok = !isNaN(v) && isFinite(v);
+    inputs[i].classList.toggle('invalid', !ok);
+    if(!ok) valid = false;
+  }
+  var financials = readSchedule();
+  var denomFields = ['revenue', 'cogs', 'currentLiabilities', 'totalEquity'];
+  for(var d = 0; d < denomFields.length; d++){
+    var f = denomFields[d];
+    if(financials[f] && (financials[f].cy === 0 || financials[f].py === 0)){
+      valid = false;
+      var els = document.querySelectorAll('.fig-input[data-id="' + f + '"]');
+      for(var e = 0; e < els.length; e++) els[e].classList.add('invalid');
+    }
+  }
+  if(!valid){
+    showInlineError('upload-error', 'Complete every figure for both years before generating insights. Revenue, COGS, current liabilities and equity cannot be zero.');
+  } else {
+    hideInlineError('upload-error');
+  }
+  return valid;
+}
+
+function showInlineError(elId, message){
+  var el = document.getElementById(elId);
+  el.classList.remove('hidden');
+  el.innerHTML = '<span>' + esc(message) + '</span>';
+}
+function hideInlineError(elId){
+  document.getElementById(elId).classList.add('hidden');
+}
+
+/* ============================================================
+   RATIO / VARIANCE COMPUTATION (deterministic, client-side)
+   ============================================================ */
+function computeRatios(f){
+  function n(key, year){ return f[key] ? f[key][year] : NaN; }
+  function pair(cy, py){ return {cy: cy, py: py}; }
+  var r = {};
+  r.currentRatio = pair(n('currentAssets','cy') / n('currentLiabilities','cy'), n('currentAssets','py') / n('currentLiabilities','py'));
+  r.quickRatio = pair((n('currentAssets','cy') - n('inventory','cy')) / n('currentLiabilities','cy'), (n('currentAssets','py') - n('inventory','py')) / n('currentLiabilities','py'));
+  r.grossMargin = pair((n('revenue','cy') - n('cogs','cy')) / n('revenue','cy') * 100, (n('revenue','py') - n('cogs','py')) / n('revenue','py') * 100);
+  r.netMargin = pair(n('netProfit','cy') / n('revenue','cy') * 100, n('netProfit','py') / n('revenue','py') * 100);
+  r.roe = pair(n('netProfit','cy') / n('totalEquity','cy') * 100, n('netProfit','py') / n('totalEquity','py') * 100);
+  r.debtorDays = pair(n('receivables','cy') / n('revenue','cy') * 365, n('receivables','py') / n('revenue','py') * 365);
+  r.inventoryDays = pair(n('inventory','cy') / n('cogs','cy') * 365, n('inventory','py') / n('cogs','py') * 365);
+  return r;
+}
+
+function computeVariances(f){
+  var list = [];
+  for(var i = 0; i < LINE_ITEMS.length; i++){
+    var item = LINE_ITEMS[i];
+    var cy = f[item.id].cy, py = f[item.id].py;
+    var pct = pctChange(cy, py);
+    list.push({id:item.id, label:item.label, cy:cy, py:py, pct:pct});
+  }
+  list.sort(function(a, b){
+    var av = a.pct === null ? 0 : Math.abs(a.pct);
+    var bv = b.pct === null ? 0 : Math.abs(b.pct);
+    return bv - av;
+  });
+  return list;
+}
+
+/* ============================================================
+   AI PROMPT BUILDERS
+   ============================================================ */
+function buildInsightsPrompt(financials, ratios, sigVariances, meta){
+  var lines = [];
+  lines.push('Client: ' + (meta.client || 'the client') + ' | Period: ' + (meta.period || 'current reporting period') + ' | Unit: ' + (meta.unit || 'not specified'));
+  lines.push('');
+  lines.push('Key figures (current year vs prior year):');
+  for(var i = 0; i < LINE_ITEMS.length; i++){
+    var item = LINE_ITEMS[i];
+    var f = financials[item.id];
+    lines.push('- ' + item.label + ': CY ' + f.cy + ', PY ' + f.py);
+  }
+  lines.push('');
+  lines.push('Computed ratios (current year vs prior year):');
+  for(var j = 0; j < RATIO_META.length; j++){
+    var rm = RATIO_META[j];
+    var r = ratios[rm.key];
+    lines.push('- ' + rm.label + ': CY ' + fmtRatio(r.cy, rm.fmt) + ', PY ' + fmtRatio(r.py, rm.fmt));
+  }
+  lines.push('');
+  lines.push('Significant year-on-year variances (>15% movement):');
+  if(sigVariances.length === 0){
+    lines.push('- None of the line items moved by more than 15%.');
+  } else {
+    for(var k = 0; k < sigVariances.length; k++){
+      var v = sigVariances[k];
+      lines.push('- ' + v.label + ': ' + (v.pct > 0 ? '+' : '') + v.pct.toFixed(1) + '% (CY ' + v.cy + ', PY ' + v.py + ')');
+    }
+  }
+  return lines.join('\n');
+}
+
+/* ============================================================
+   LOADING VIEW
+   ============================================================ */
+function startLoadingCycle(){
+  var idx = 0;
+  var textEl = document.getElementById('loading-text');
+  textEl.textContent = LOADING_MESSAGES[0];
+  state.loadingInterval = setInterval(function(){
+    idx = (idx + 1) % LOADING_MESSAGES.length;
+    textEl.textContent = LOADING_MESSAGES[idx];
+  }, 1400);
+}
+function stopLoadingCycle(){
+  if(state.loadingInterval){ clearInterval(state.loadingInterval); state.loadingInterval = null; }
+}
+
+/* ============================================================
+   FILE UPLOAD / EXTRACTION
+   ============================================================ */
+function handleFile(file){
+  if(!file) return;
+  var okTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+  if(okTypes.indexOf(file.type) === -1){
+    showInlineError('upload-error', 'Upload a PDF or an image (PNG/JPG) of the financial statements.');
+    return;
+  }
+  hideInlineError('upload-error');
+  state.selectedFile = file;
+  document.getElementById('upload-filename').textContent = file.name;
+  document.getElementById('extract-btn').disabled = false;
+}
+
+function extractFigures(){
+  var file = state.selectedFile;
+  if(!file) return;
+  var btn = document.getElementById('extract-btn');
+  btn.disabled = true;
+  btn.textContent = 'Extracting…';
+  document.getElementById('extract-note').classList.add('hidden');
+
+  fileToBase64(file).then(function(base64){
+    return callBackend('/api/extract-figures', {base64: base64, mediaType: file.type});
+  }).then(function(text){
+    var parsed = parseJSONSafe(text);
+    fillSchedule(parsed);
+    var note = document.getElementById('extract-note');
+    note.classList.remove('hidden');
+    note.textContent = 'Figures extracted — please review and correct before generating insights.';
+  }).catch(function(err){
+    showInlineError('upload-error', 'Could not extract figures from the file. Try a clearer file or enter figures manually. (' + err.message + ')');
+  }).finally(function(){
+    btn.disabled = false;
+    btn.textContent = 'Extract figures with AI';
+  });
+}
+
+function loadDemoData(){
+  fillSchedule(DEMO_DATA);
+  document.getElementById('meta-client').value = DEMO_META.client;
+  document.getElementById('meta-period').value = DEMO_META.period;
+  document.getElementById('meta-unit').value = DEMO_META.unit;
+  hideInlineError('upload-error');
+}
+
+/* ============================================================
+   GENERATE INSIGHTS
+   ============================================================ */
+function generateInsights(){
+  if(!validateSchedule()) return;
+
+  var financials = readSchedule();
+  var meta = {
+    client: document.getElementById('meta-client').value || 'the client',
+    period: document.getElementById('meta-period').value || 'the current period',
+    unit: document.getElementById('meta-unit').value || ''
+  };
+  state.financials = financials;
+  state.meta = meta;
+  state.computed = {
+    ratios: computeRatios(financials),
+    variances: computeVariances(financials)
+  };
+
+  showView('view-loading');
+  startLoadingCycle();
+
+  var sigVariances = state.computed.variances.filter(function(v){
+    return v.pct !== null && Math.abs(v.pct) > 15;
+  }).slice(0, 6);
+
+  var prompt = buildInsightsPrompt(financials, state.computed.ratios, sigVariances, meta);
+
+  callBackend('/api/generate-insights', {prompt: prompt}).then(function(text){
+    state.insights = parseJSONSafe(text);
+    state.managerComments = null;
+    state.clearedFlags = {};
+    stopLoadingCycle();
+    state.currentTab = 'summary';
+    showView('view-results');
+    renderIndex();
+    renderMain();
+  }).catch(function(err){
+    stopLoadingCycle();
+    showView('view-upload');
+    showInlineError('upload-error', 'Could not generate insights. ' + err.message);
+  });
+}
+
+/* ============================================================
+   MANAGER REVIEW
+   ============================================================ */
+function reviewAsManager(){
+  var btn = document.getElementById('review-manager-btn');
+  if(!btn) return;
+  btn.disabled = true;
+  btn.textContent = 'Reviewing…';
+
+  var payload = state.insights.workingPaper.map(function(w){
+    return {riskArea: w.riskArea, objective: w.objective, procedurePerformed: w.procedurePerformed, observation: w.observation, conclusion: w.conclusion};
+  });
+
+  callBackend('/api/review-manager', {workingPaper: payload}).then(function(text){
+    var parsed = parseJSONSafe(text);
+    state.managerComments = parsed.comments || [];
+    state.clearedFlags = {};
+    renderMain();
+  }).catch(function(err){
+    btn.disabled = false;
+    btn.textContent = 'Review as Audit Manager';
+    showInlineError('workingpaper-error', 'Could not generate manager review. ' + err.message);
+  });
+}
+
+/* ============================================================
+   RENDER: INDEX (sidebar tabs)
+   ============================================================ */
+function renderIndex(){
+  var idx = document.getElementById('wp-index');
+  var html = '';
+  for(var i = 0; i < TABS.length; i++){
+    var t = TABS[i];
+    html += '<button class="idx-btn' + (t.id === state.currentTab ? ' active' : '') + '" data-tab="' + t.id + '" role="tab" aria-selected="' + (t.id === state.currentTab) + '">' +
+      '<span class="idx-code">' + t.code + '</span><span class="idx-label">' + esc(t.label) + '</span></button>';
+  }
+  idx.innerHTML = html;
+  var btns = idx.querySelectorAll('.idx-btn');
+  for(var j = 0; j < btns.length; j++){
+    btns[j].addEventListener('click', function(){
+      state.currentTab = this.getAttribute('data-tab');
+      renderIndex();
+      renderMain();
+    });
+  }
+}
+
+/* ============================================================
+   RENDER: MAIN PANEL
+   ============================================================ */
+function wpHeader(code, label){
+  return '<div class="wp-page-header"><span class="wp-code">' + code + '</span><h2>' + esc(label) + '</h2>' +
+    '<div class="wp-meta">' + esc(state.meta.client) + ' · ' + esc(state.meta.period) + (state.meta.unit ? ' · ' + esc(state.meta.unit) : '') + '</div></div>';
+}
+
+function renderMain(){
+  var main = document.getElementById('wp-main');
+  if(state.currentTab === 'summary') main.innerHTML = renderSummaryHTML();
+  else if(state.currentTab === 'ratios') main.innerHTML = renderRatiosHTML();
+  else if(state.currentTab === 'variances') main.innerHTML = renderVariancesHTML();
+  else if(state.currentTab === 'risks') main.innerHTML = renderRisksHTML();
+  else if(state.currentTab === 'workingpaper'){
+    main.innerHTML = renderWorkingPaperHTML();
+    attachWorkingPaperHandlers();
+  }
+}
+
+function renderSummaryHTML(){
+  var i = state.insights;
+  var revChange = pctChange(state.financials.revenue.cy, state.financials.revenue.py);
+  var marginDelta = state.computed.ratios.netMargin.cy - state.computed.ratios.netMargin.py;
+  var html = wpHeader('WP-100', 'Executive Summary');
+  html += '<div class="stat-strip">';
+  html += '<div class="stat"><span class="stat-label">Revenue movement</span><span class="stat-value mono ' + (revChange >= 0 ? 'up' : 'down') + '">' + (revChange === null ? '—' : (revChange > 0 ? '+' : '') + revChange.toFixed(1) + '%') + '</span></div>';
+  html += '<div class="stat"><span class="stat-label">Net margin movement</span><span class="stat-value mono ' + (marginDelta >= 0 ? 'up' : 'down') + '">' + (marginDelta > 0 ? '+' : '') + marginDelta.toFixed(1) + ' pts</span></div>';
+  html += '<div class="stat"><span class="stat-label">Risk areas flagged</span><span class="stat-value mono">' + i.riskAreas.length + '</span></div>';
+  html += '</div>';
+  html += '<span class="ai-badge">AI-drafted · review required</span>';
+  html += '<p class="prose">' + esc(i.executiveSummary) + '</p>';
+  return html;
+}
+
+function renderRatiosHTML(){
+  var html = wpHeader('WP-200', 'Ratio Analysis');
+  html += '<table class="ratio-table"><thead><tr><th>Ratio</th><th>Current Year</th><th>Prior Year</th><th>Movement</th></tr></thead><tbody>';
+  for(var j = 0; j < RATIO_META.length; j++){
+    var rm = RATIO_META[j];
+    var r = state.computed.ratios[rm.key];
+    var deltaClass = fmtDeltaClass(r.cy, r.py, rm.goodDir);
+    var arrow = r.cy > r.py ? '↑' : (r.cy < r.py ? '↓' : '→');
+    html += '<tr><td>' + esc(rm.label) + '</td>' +
+      '<td class="mono">' + fmtRatio(r.cy, rm.fmt) + '</td>' +
+      '<td class="mono">' + fmtRatio(r.py, rm.fmt) + '</td>' +
+      '<td class="mono ' + deltaClass + '">' + arrow + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  return html;
+}
+
+function renderVariancesHTML(){
+  var html = wpHeader('WP-300', 'Variance Analysis');
+  html += '<div class="variance-list">';
+  var commentary = {};
+  if(state.insights && state.insights.varianceCommentary){
+    for(var c = 0; c < state.insights.varianceCommentary.length; c++){
+      commentary[state.insights.varianceCommentary[c].item] = state.insights.varianceCommentary[c].commentary;
+    }
+  }
+  var variances = state.computed.variances;
+  for(var i = 0; i < variances.length; i++){
+    var v = variances[i];
+    var flagged = v.pct !== null && Math.abs(v.pct) > 15;
+    var pctClass = v.pct === null ? '' : (v.pct >= 0 ? 'delta-up' : 'delta-down');
+    var note = commentary[v.label];
+    html += '<div class="variance-item' + (flagged ? ' flagged' : '') + '">';
+    html += '<div class="variance-top"><span class="variance-name">' + esc(v.label) + (flagged ? ' <span class="flag-pill">significant</span>' : '') + '</span>';
+    html += '<span class="variance-pct ' + pctClass + '">' + (v.pct === null ? '—' : (v.pct > 0 ? '+' : '') + v.pct.toFixed(1) + '%') + '</span></div>';
+    html += '<div class="variance-figs">CY ' + fmtNum(v.cy) + ' · PY ' + fmtNum(v.py) + '</div>';
+    if(note) html += '<div class="variance-commentary">' + esc(note) + '</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderRisksHTML(){
+  var html = wpHeader('WP-400', 'Potential Audit Risk Areas');
+  html += '<span class="ai-badge">AI-drafted · review required</span>';
+  html += '<div class="risk-grid">';
+  var risks = state.insights.riskAreas || [];
+  for(var i = 0; i < risks.length; i++){
+    var r = risks[i];
+    html += '<div class="risk-card"><h3>' + esc(r.title) + '</h3>';
+    html += '<div class="risk-row"><span class="risk-tag">Reason</span><p>' + esc(r.reason) + '</p></div>';
+    html += '<div class="risk-row"><span class="risk-tag">Suggested<br>procedure</span><p>' + esc(r.procedure) + '</p></div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderWorkingPaperHTML(){
+  var html = wpHeader('WP-500', 'Working Paper Draft');
+  var reviewed = !!state.managerComments;
+  var totalComments = reviewed ? state.managerComments.length : 0;
+  var clearedCount = 0;
+  if(reviewed){
+    for(var key in state.clearedFlags){ if(state.clearedFlags[key]) clearedCount++; }
+  }
+
+  html += '<div class="wp-toolbar">';
+  html += '<span class="ai-badge">AI-drafted · review required</span>';
+  if(!reviewed){
+    html += '<button id="review-manager-btn" class="btn btn-secondary" type="button">Review as Audit Manager</button>';
+  } else {
+    html += '<span class="clear-counter">' + clearedCount + ' of ' + totalComments + ' queries cleared</span>';
+  }
+  html += '</div>';
+  html += '<div id="workingpaper-error" class="error-banner hidden"></div>';
+
+  var drafts = state.insights.workingPaper || [];
+  var fieldLabels = {objective:'Objective', procedurePerformed:'Procedure Performed', observation:'Observation', conclusion:'Conclusion'};
+  var fieldOrder = ['objective','procedurePerformed','observation','conclusion'];
+
+  for(var i = 0; i < drafts.length; i++){
+    var d = drafts[i];
+    html += '<div class="draft-card"><h3>' + esc(d.riskArea) + '</h3>';
+    for(var f = 0; f < fieldOrder.length; f++){
+      var fieldKey = fieldOrder[f];
+      html += '<div class="draft-field"><span class="draft-field-label">' + fieldLabels[fieldKey] + '</span><span class="draft-field-text">' + esc(d[fieldKey]) + '</span></div>';
+      if(reviewed){
+        html += renderCommentsForField(d.riskArea, fieldKey);
+      }
+    }
+    html += '</div>';
+  }
+
+  if(reviewed){
+    var generalComments = state.managerComments.filter(function(c){ return c.refersTo === 'general' || c.field === 'general'; });
+    if(generalComments.length){
+      html += '<div class="general-notes"><h4>General review notes</h4>';
+      for(var g = 0; g < generalComments.length; g++){
+        html += renderSingleComment(generalComments[g], 'general-' + g);
+      }
+      html += '</div>';
+    }
+  }
+
+  return html;
+}
+
+function renderCommentsForField(riskArea, field){
+  if(!state.managerComments) return '';
+  var html = '';
+  for(var i = 0; i < state.managerComments.length; i++){
+    var c = state.managerComments[i];
+    if(c.refersTo === riskArea && c.field === field){
+      html += renderSingleComment(c, riskArea + '-' + field + '-' + i);
+    }
+  }
+  return html;
+}
+
+function renderSingleComment(c, key){
+  var cleared = !!state.clearedFlags[key];
+  return '<div class="review-note' + (cleared ? ' cleared' : '') + '">' +
+    '<span class="q-tag">Q</span>' +
+    '<p>' + esc(c.comment) + '</p>' +
+    '<button class="clear-toggle" data-key="' + esc(key) + '" type="button">' + (cleared ? 'Cleared ✓' : 'Mark cleared') + '</button>' +
+    '</div>';
+}
+
+function attachWorkingPaperHandlers(){
+  var reviewBtn = document.getElementById('review-manager-btn');
+  if(reviewBtn) reviewBtn.addEventListener('click', reviewAsManager);
+  var toggles = document.querySelectorAll('.clear-toggle');
+  for(var i = 0; i < toggles.length; i++){
+    toggles[i].addEventListener('click', function(){
+      var key = this.getAttribute('data-key');
+      state.clearedFlags[key] = !state.clearedFlags[key];
+      renderMain();
+    });
+  }
+}
+
+/* ============================================================
+   WIRE UP UI
+   ============================================================ */
+function init(){
+  // Load saved Gemini key
+  var savedKey = localStorage.getItem('auditpilot_gemini_key') || '';
+  if(savedKey){
+    GEMINI_API_KEY = savedKey;
+    document.getElementById('gemini-key-input').value = savedKey;
+    document.getElementById('api-key-banner').style.borderColor = 'rgba(47,190,107,0.4)';
+  }
+
+  document.getElementById('save-key-btn').addEventListener('click', function(){
+    var key = document.getElementById('gemini-key-input').value.trim();
+    if(!key){ alert('Please paste your Gemini API key first.'); return; }
+    GEMINI_API_KEY = key;
+    localStorage.setItem('auditpilot_gemini_key', key);
+    var banner = document.getElementById('api-key-banner');
+    banner.style.borderColor = 'rgba(47,190,107,0.4)';
+    document.getElementById('save-key-btn').textContent = 'Saved ✓';
+    setTimeout(function(){ document.getElementById('save-key-btn').textContent = 'Save key'; }, 2000);
+  });
+
+  buildScheduleTable();
+
+  document.getElementById('try-demo-btn').addEventListener('click', function(){
+    showView('view-upload');
+    loadDemoData();
+  });
+  document.getElementById('upload-btn').addEventListener('click', function(){
+    showView('view-upload');
+  });
+
+  var dropzone = document.getElementById('dropzone');
+  var fileInput = document.getElementById('file-input');
+  document.getElementById('browse-btn').addEventListener('click', function(){ fileInput.click(); });
+  fileInput.addEventListener('change', function(e){
+    if(e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+  });
+  dropzone.addEventListener('dragover', function(e){ e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', function(){ dropzone.classList.remove('drag'); });
+  dropzone.addEventListener('drop', function(e){
+    e.preventDefault();
+    dropzone.classList.remove('drag');
+    if(e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  document.getElementById('extract-btn').addEventListener('click', extractFigures);
+  document.getElementById('demo-btn').addEventListener('click', loadDemoData);
+  document.getElementById('generate-btn').addEventListener('click', generateInsights);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
