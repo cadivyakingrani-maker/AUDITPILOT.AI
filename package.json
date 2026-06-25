@@ -1,0 +1,8 @@
+{
+  "name": "auditpilot-ai",
+  "version": "1.0.0",
+  "description": "AuditPilot AI — Preliminary Analytical Review Assistant",
+  "engines": {
+    "node": ">=18"
+  }
+}
